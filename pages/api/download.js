@@ -24,19 +24,19 @@ const getClientInfo = (req) => {
 };
 
 export default async function handler(req, res) {
-  // Set CORS headers for all origins - FIXED
+  // Set CORS headers for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-  // Handle OPTIONS request (preflight) - FIXED
+  // Handle OPTIONS request (preflight)
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(200).json({ success: true, message: 'CORS preflight successful' });
   }
 
-  // Allow both GET and POST requests - FIXED
+  // Allow both GET and POST requests
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({
       success: false,
@@ -46,27 +46,36 @@ export default async function handler(req, res) {
 
   try {
     let key, url;
-    
-    // Handle both GET and POST requests - FIXED
+
+    // Handle both GET and POST requests
     if (req.method === 'GET') {
       key = req.query.key;
       url = req.query.url;
     } else if (req.method === 'POST') {
       if (req.headers['content-type']?.includes('application/json')) {
-        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        const body = req.body;
         key = body.key;
         url = body.url;
       } else if (req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
-        const params = new URLSearchParams(req.body);
-        key = params.get('key');
-        url = params.get('url');
+        const body = await parseFormData(req);
+        key = body.key;
+        url = body.url;
       } else {
-        key = req.body?.key;
-        url = req.body?.url;
+        // Try to parse as JSON anyway
+        try {
+          const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+          key = body.key;
+          url = body.url;
+        } catch {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid content type. Use application/json or application/x-www-form-urlencoded'
+          });
+        }
       }
     }
 
-    console.log('API Request:', { method: req.method, key: key ? `${key.substring(0, 10)}...` : 'missing', url: url || 'missing' });
+    console.log('API Request:', { method: req.method, key: key ? `${key.substring(0, 10)}...` : 'missing', url: url ? `${url.substring(0, 50)}...` : 'missing' });
 
     // Validate required parameters
     if (!key) {
@@ -127,12 +136,6 @@ export default async function handler(req, res) {
     const downloader = new TikTokDownloader();
     const result = await downloader.downloadTikTok(url);
 
-    console.log('API Response Success:', { 
-      type: result.type, 
-      title: result.data?.title?.substring(0, 50) + '...',
-      author: result.data?.author?.name
-    });
-
     // Return successful response
     return res.status(200).json(result);
 
@@ -142,13 +145,11 @@ export default async function handler(req, res) {
     // Log failed request if we have the key
     if (req.query?.key || req.body?.key) {
       try {
-        const clientInfo = getClientInfo(req);
         const key = req.query?.key || req.body?.key;
-        const url = req.query?.url || req.body?.url;
-        
+        const clientInfo = getClientInfo(req);
         await db.logApiRequest(key, {
           ...clientInfo,
-          tiktokUrl: url,
+          tiktokUrl: req.query?.url || req.body?.url,
           success: false,
           error: error.message
         });
@@ -173,6 +174,11 @@ export default async function handler(req, res) {
         success: false,
         error: 'Service temporarily unavailable. Please try again later.'
       });
+    } else if (error.message.includes('No download links found')) {
+      return res.status(404).json({
+        success: false,
+        error: error.message
+      });
     } else {
       return res.status(500).json({
         success: false,
@@ -180,4 +186,27 @@ export default async function handler(req, res) {
       });
     }
   }
+}
+
+// Helper function to parse form data
+function parseFormData(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        const params = new URLSearchParams(body);
+        const data = {};
+        for (const [key, value] of params) {
+          data[key] = value;
+        }
+        resolve(data);
+      } catch (error) {
+        reject(error);
+      }
+    });
+    req.on('error', reject);
+  });
 }
