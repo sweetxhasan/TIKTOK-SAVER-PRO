@@ -2,12 +2,13 @@ import { TikTokDownloader } from '../../lib/tiktok-downloader';
 import { db } from '../../lib/firebase';
 
 export default async function handler(req, res) {
-  // Set CORS headers
+  // Set CORS headers for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Max-Age', '86400');
 
-  // Handle OPTIONS request
+  // Handle OPTIONS request (preflight)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -27,40 +28,73 @@ export default async function handler(req, res) {
     if (!key) {
       return res.status(400).json({
         success: false,
-        error: 'API key is required'
+        error: 'API key is required. Please provide a valid API key.'
       });
     }
 
     if (!url) {
       return res.status(400).json({
         success: false,
-        error: 'TikTok URL is required'
+        error: 'TikTok URL is required. Please provide a valid TikTok video URL.'
       });
     }
 
-    // Validate API key
+    // Validate API key format
+    if (typeof key !== 'string' || !key.startsWith('hasan_key_') || key.length < 30) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid API key format. API key must start with "hasan_key_" and be at least 30 characters long.'
+      });
+    }
+
+    // Validate API key in database
     const isValidKey = await db.validateApiKey(key);
     if (!isValidKey) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid API key'
+        error: 'Invalid API key. Please check your API key or generate a new one.'
       });
     }
 
     // Update API usage
-    await db.updateApiUsage(key);
+    try {
+      await db.updateApiUsage(key);
+    } catch (usageError) {
+      console.error('Usage tracking error:', usageError);
+      // Continue even if usage tracking fails
+    }
 
     // Download TikTok content
     const downloader = new TikTokDownloader();
     const result = await downloader.downloadTikTok(url);
 
-    res.status(200).json(result);
+    // Return successful response
+    return res.status(200).json(result);
+
   } catch (error) {
     console.error('API Error:', error.message);
     
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Internal server error'
-    });
+    // Return appropriate error response
+    if (error.message.includes('Invalid TikTok URL')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    } else if (error.message.includes('timeout') || error.message.includes('Network error')) {
+      return res.status(408).json({
+        success: false,
+        error: 'Request timeout. Please try again.'
+      });
+    } else if (error.message.includes('Service temporarily unavailable')) {
+      return res.status(503).json({
+        success: false,
+        error: 'Service temporarily unavailable. Please try again later.'
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Internal server error. Please try again.'
+      });
+    }
   }
 }
