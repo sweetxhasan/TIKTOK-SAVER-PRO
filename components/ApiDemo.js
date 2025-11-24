@@ -13,29 +13,19 @@ fetch('${siteUrl}/api/download?key=YOUR_API_KEY&url=TIKTOK_URL')
   .then(data => {
     if (data.success) {
       console.log('Video Title:', data.data.title);
-      console.log('Download URL:', data.data.download_links.video[0].url);
+      // Proxy download URL example
+      const downloadUrl = data.data.download_links.video[0].url;
+      console.log('Proxy Download URL:', downloadUrl);
+      
+      // Direct download using proxy
+      window.location.href = downloadUrl;
     } else {
       console.error('Error:', data.error);
     }
   })
-  .catch(error => console.error('Request failed:', error));
+  .catch(error => console.error('Request failed:', error));`,
 
-// Using Fetch API - POST Request
-fetch('${siteUrl}/api/download', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    key: 'YOUR_API_KEY',
-    url: 'TIKTOK_URL'
-  })
-})
-.then(response => response.json())
-.then(data => console.log(data))
-.catch(error => console.error('Error:', error));`,
-
-    nodejs: `// Using Axios in Node.js - GET Request
+    nodejs: `// Using Axios in Node.js
 const axios = require('axios');
 
 const apiUrl = '${siteUrl}/api/download';
@@ -46,25 +36,20 @@ const params = {
 
 axios.get(apiUrl, { params })
   .then(response => {
-    console.log('Success:', response.data);
+    const data = response.data;
+    if (data.success) {
+      console.log('Video Title:', data.data.title);
+      console.log('Proxy Video URL:', data.data.download_links.video[0].url);
+      console.log('Proxy Audio URL:', data.data.download_links.audio[0].url);
+    } else {
+      console.error('Error:', data.error);
+    }
   })
   .catch(error => {
     console.error('Error:', error.response?.data || error.message);
-  });
+  });`,
 
-// Using Axios - POST Request
-axios.post(apiUrl, {
-  key: 'YOUR_API_KEY',
-  url: 'TIKTOK_URL'
-})
-.then(response => {
-  console.log('Success:', response.data);
-})
-.catch(error => {
-  console.error('Error:', error.response?.data || error.message);
-});`,
-
-    python: `# Using requests in Python - GET Request
+    python: `# Using requests in Python
 import requests
 
 api_url = '${siteUrl}/api/download'
@@ -78,23 +63,13 @@ data = response.json()
 
 if data.get('success'):
     print("Video Title:", data['data']['title'])
-    print("Download URL:", data['data']['download_links']['video'][0]['url'])
+    print("Proxy Video URL:", data['data']['download_links']['video'][0]['url'])
+    print("Proxy Audio URL:", data['data']['download_links']['audio'][0]['url'])
 else:
-    print("Error:", data.get('error'))
-
-# POST Request
-import requests
-
-data = {
-    'key': 'YOUR_API_KEY',
-    'url': 'TIKTOK_URL'
-}
-
-response = requests.post('${siteUrl}/api/download', json=data)
-print(response.json())`,
+    print("Error:", data.get('error'))`,
 
     php: `<?php
-// Using cURL in PHP - GET Request
+// Using cURL in PHP
 $api_url = '${siteUrl}/api/download';
 $params = [
     'key' => 'YOUR_API_KEY',
@@ -112,27 +87,11 @@ $data = json_decode($response, true);
 
 if ($data['success']) {
     echo "Video Title: " . $data['data']['title'] . "\\n";
-    echo "Download URL: " . $data['data']['download_links']['video'][0]['url'] . "\\n";
+    echo "Proxy Video URL: " . $data['data']['download_links']['video'][0]['url'] . "\\n";
+    echo "Proxy Audio URL: " . $data['data']['download_links']['audio'][0]['url'] . "\\n";
 } else {
     echo "Error: " . $data['error'] . "\\n";
 }
-
-// POST Request
-$data = [
-    'key' => 'YOUR_API_KEY',
-    'url' => 'TIKTOK_URL'
-];
-
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, '${siteUrl}/api/download');
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-$response = curl_exec($ch);
-curl_close($ch);
-
-echo $response;
 ?>`
   };
 
@@ -143,13 +102,13 @@ echo $response;
       title: "Example TikTok Video - Amazing Dance Moves!",
       description: "Check out these amazing dance moves from our latest TikTok video",
       duration: 30,
-      thumbnail: "https://example.com/thumbnail.jpg",
+      thumbnail: `${siteUrl}/proxy/download?url=https://example.com/thumbnail.jpg`,
       filename: "example_tiktok_video_30s",
       author: {
         id: "user123",
         name: "Example User",
         username: "exampleuser",
-        avatar: "https://example.com/avatar.jpg",
+        avatar: `${siteUrl}/proxy/download?url=https://example.com/avatar.jpg`,
         verified: true,
         followers: "1.2M"
       },
@@ -163,26 +122,26 @@ echo $response;
       music: {
         title: "Original Sound",
         author: "Example Artist",
-        url: "https://example.com/audio.mp3",
-        cover: "https://example.com/music_cover.jpg"
+        url: `${siteUrl}/proxy/download?url=https://example.com/audio.mp3`,
+        cover: `${siteUrl}/proxy/download?url=https://example.com/music_cover.jpg`
       },
       download_links: {
         video: [
           {
             type: "hd",
-            url: "https://example.com/video_hd.mp4",
+            url: `${siteUrl}/proxy/download?url=https://example.com/video_hd.mp4`,
             label: "HD Quality"
           },
           {
             type: "standard",
-            url: "https://example.com/video_standard.mp4",
+            url: `${siteUrl}/proxy/download?url=https://example.com/video_standard.mp4`,
             label: "Standard Quality"
           }
         ],
         audio: [
           {
             type: "audio",
-            url: "https://example.com/audio.mp3",
+            url: `${siteUrl}/proxy/download?url=https://example.com/audio.mp3`,
             label: "Audio Only"
           }
         ],
@@ -235,7 +194,8 @@ echo $response;
         </div>
         <div className="mt-2 text-sm text-gray-600">
           <p><strong>Supported Methods:</strong> GET, POST</p>
-          <p><strong>Content-Type:</strong> application/json, application/x-www-form-urlencoded</p>
+          <p><strong>Proxy System:</strong> All media URLs are automatically converted to proxy URLs</p>
+          <p><strong>Direct Downloads:</strong> Use proxy URLs for direct file downloads</p>
         </div>
       </div>
 
@@ -296,6 +256,18 @@ echo $response;
               <code>{JSON.stringify(sampleResponse, null, 2)}</code>
             </pre>
           </div>
+        </div>
+      </div>
+
+      {/* Proxy System Info */}
+      <div className="bg-blue-50 border-1 border-blue-200 p-6">
+        <h3 className="text-lg font-bold text-blue-900 mb-3">Proxy Download System</h3>
+        <div className="space-y-2 text-blue-800 text-sm">
+          <p><strong>✓ Automatic URL Conversion:</strong> All media URLs are automatically converted to proxy URLs</p>
+          <p><strong>✓ Direct Downloads:</strong> Proxy URLs provide direct file downloads with proper headers</p>
+          <p><strong>✓ CORS Enabled:</strong> Works from any domain or localhost</p>
+          <p><strong>✓ Cache Support:</strong> Files are cached for better performance</p>
+          <p><strong>✓ Cross-Platform:</strong> Works with all programming languages and browsers</p>
         </div>
       </div>
     </div>
