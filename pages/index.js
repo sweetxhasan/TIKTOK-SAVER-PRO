@@ -79,12 +79,20 @@ export default function Home() {
               <span className="text-2xl">🎬</span>
               <h1 className="text-2xl font-bold">SAVE TIK</h1>
             </div>
-            <button
-              onClick={() => setIsKeyModalOpen(true)}
-              className="bg-gray-900 text-white px-6 py-2 font-bold hover:bg-gray-800 border-2 border-gray-900"
-            >
-              GENERATE KEY
-            </button>
+            <div className="flex space-x-4">
+              <a
+                href="/api-docs"
+                className="bg-white text-gray-900 px-4 py-2 font-bold hover:bg-gray-100 border-2 border-gray-900"
+              >
+                API DOCS
+              </a>
+              <button
+                onClick={() => setIsKeyModalOpen(true)}
+                className="bg-gray-900 text-white px-6 py-2 font-bold hover:bg-gray-800 border-2 border-gray-900"
+              >
+                GENERATE KEY
+              </button>
+            </div>
           </div>
         </div>
       </header>
