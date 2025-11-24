@@ -24,18 +24,19 @@ const getClientInfo = (req) => {
 };
 
 export default async function handler(req, res) {
-  // Set CORS headers for all origins
+  // Set CORS headers for all origins - FIXED
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
 
-  // Handle OPTIONS request (preflight)
+  // Handle OPTIONS request (preflight) - FIXED
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Allow both GET and POST requests
+  // Allow both GET and POST requests - FIXED
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({
       success: false,
@@ -45,31 +46,27 @@ export default async function handler(req, res) {
 
   try {
     let key, url;
-
-    // Handle both GET and POST requests
+    
+    // Handle both GET and POST requests - FIXED
     if (req.method === 'GET') {
       key = req.query.key;
       url = req.query.url;
     } else if (req.method === 'POST') {
       if (req.headers['content-type']?.includes('application/json')) {
-        const body = req.body;
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
         key = body.key;
         url = body.url;
       } else if (req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
-        const body = await new Promise((resolve) => {
-          let data = '';
-          req.on('data', chunk => data += chunk);
-          req.on('end', () => resolve(new URLSearchParams(data)));
-        });
-        key = body.get('key');
-        url = body.get('url');
+        const params = new URLSearchParams(req.body);
+        key = params.get('key');
+        url = params.get('url');
       } else {
         key = req.body?.key;
         url = req.body?.url;
       }
     }
 
-    console.log('API Request:', { method: req.method, key: key ? `${key.substring(0, 10)}...` : 'none', url: url ? `${url.substring(0, 50)}...` : 'none' });
+    console.log('API Request:', { method: req.method, key: key ? `${key.substring(0, 10)}...` : 'missing', url: url || 'missing' });
 
     // Validate required parameters
     if (!key) {
@@ -133,7 +130,7 @@ export default async function handler(req, res) {
     console.log('API Response Success:', { 
       type: result.type, 
       title: result.data?.title?.substring(0, 50) + '...',
-      author: result.data?.author?.name 
+      author: result.data?.author?.name
     });
 
     // Return successful response
@@ -146,12 +143,12 @@ export default async function handler(req, res) {
     if (req.query?.key || req.body?.key) {
       try {
         const clientInfo = getClientInfo(req);
-        const requestKey = req.query?.key || req.body?.key;
-        const requestUrl = req.query?.url || req.body?.url;
+        const key = req.query?.key || req.body?.key;
+        const url = req.query?.url || req.body?.url;
         
-        await db.logApiRequest(requestKey, {
+        await db.logApiRequest(key, {
           ...clientInfo,
-          tiktokUrl: requestUrl,
+          tiktokUrl: url,
           success: false,
           error: error.message
         });
@@ -175,11 +172,6 @@ export default async function handler(req, res) {
       return res.status(503).json({
         success: false,
         error: 'Service temporarily unavailable. Please try again later.'
-      });
-    } else if (error.message.includes('No download links found')) {
-      return res.status(404).json({
-        success: false,
-        error: error.message
       });
     } else {
       return res.status(500).json({
