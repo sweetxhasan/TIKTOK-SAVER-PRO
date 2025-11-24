@@ -23,6 +23,28 @@ const getClientInfo = (req) => {
   };
 };
 
+// Function to replace URLs with proxy URLs
+function replaceWithProxyUrls(data, baseUrl) {
+  if (!data || typeof data !== 'object') return data;
+
+  if (Array.isArray(data)) {
+    return data.map(item => replaceWithProxyUrls(item, baseUrl));
+  }
+
+  const newData = { ...data };
+
+  for (const key in newData) {
+    if (key === 'url' && typeof newData[key] === 'string' && newData[key].startsWith('http')) {
+      // Replace direct URL with proxy URL
+      newData[key] = `${baseUrl}/proxy/download?url=${encodeURIComponent(newData[key])}`;
+    } else if (typeof newData[key] === 'object') {
+      newData[key] = replaceWithProxyUrls(newData[key], baseUrl);
+    }
+  }
+
+  return newData;
+}
+
 export default async function handler(req, res) {
   // Set CORS headers for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -69,7 +91,11 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log('API Request:', { method: req.method, key: key ? `${key.substring(0, 10)}...` : 'none', url: url ? `${url.substring(0, 50)}...` : 'none' });
+    console.log('API Request:', { 
+      method: req.method, 
+      key: key ? `${key.substring(0, 10)}...` : 'none', 
+      url: url ? `${url.substring(0, 50)}...` : 'none' 
+    });
 
     // Validate required parameters
     if (!key) {
@@ -136,8 +162,26 @@ export default async function handler(req, res) {
       author: result.data?.author?.name 
     });
 
-    // Return successful response
-    return res.status(200).json(result);
+    // Get base URL for proxy
+    const baseUrl = req.headers['x-forwarded-host'] 
+      ? `https://${req.headers['x-forwarded-host']}`
+      : req.headers['host'] 
+        ? `https://${req.headers['host']}`
+        : 'https://your-site.vercel.app';
+
+    console.log('Base URL for proxy:', baseUrl);
+
+    // Replace all download URLs with proxy URLs
+    const resultWithProxy = replaceWithProxyUrls(result, baseUrl);
+
+    console.log('URLs replaced with proxy:', {
+      originalVideoUrls: result.data?.download_links?.video?.length || 0,
+      originalAudioUrls: result.data?.download_links?.audio?.length || 0,
+      originalImageUrls: result.data?.download_links?.images?.length || 0
+    });
+
+    // Return successful response with proxy URLs
+    return res.status(200).json(resultWithProxy);
 
   } catch (error) {
     console.error('API Error:', error.message);
