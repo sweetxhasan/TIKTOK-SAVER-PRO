@@ -1,3 +1,5 @@
+import { db } from '../../lib/firebase';
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { password } = req.body;
+    const { password, type = "website" } = req.body;
     
     if (!password) {
       return res.status(400).json({ 
@@ -22,7 +24,23 @@ export default async function handler(req, res) {
       });
     }
 
-    const correctPassword = process.env.WEBSITE_PASSWORD || '123456';
+    // Get settings from database
+    const settings = await db.getWebsiteSettings();
+    
+    let correctPassword;
+    switch (type) {
+      case "website":
+        correctPassword = settings.websitePassword || process.env.WEBSITE_PASSWORD || '123456';
+        break;
+      case "private":
+        correctPassword = settings.privatePagePassword || process.env.PRIVATE_PAGE_PASSWORD || '654321';
+        break;
+      case "admin":
+        correctPassword = process.env.ADMIN_PAGE_PASSWORD || '123456';
+        break;
+      default:
+        correctPassword = process.env.WEBSITE_PASSWORD || '123456';
+    }
 
     if (password === correctPassword) {
       res.status(200).json({ success: true });
