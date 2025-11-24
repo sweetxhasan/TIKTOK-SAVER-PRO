@@ -1,5 +1,3 @@
-import { db } from '../../lib/firebase';
-
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,19 +22,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get settings from database
-    const settings = await db.getWebsiteSettings();
-    
     let correctPassword;
     switch (type) {
       case "website":
-        correctPassword = settings.websitePassword || process.env.WEBSITE_PASSWORD || '123456';
+        correctPassword = process.env.WEBSITE_PASSWORD || '123456';
         break;
       case "private":
-        correctPassword = settings.privatePagePassword || process.env.PRIVATE_PAGE_PASSWORD || '654321';
-        break;
-      case "admin":
-        correctPassword = settings.adminPassword || process.env.ADMIN_PAGE_PASSWORD || '123456';
+        correctPassword = process.env.PRIVATE_PAGE_PASSWORD || '654321';
         break;
       default:
         correctPassword = process.env.WEBSITE_PASSWORD || '123456';
