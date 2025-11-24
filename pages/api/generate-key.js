@@ -1,4 +1,4 @@
-import { db } from '../../../lib/firebase';
+import { db } from '../../lib/firebase';
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     console.error('Generate key error:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error'
+      error: error.message || 'Internal server error'
     });
   }
 }
