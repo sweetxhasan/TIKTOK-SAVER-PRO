@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { keyName, apiKey } = req.body;
+    const { keyName, apiKey, expiresInDays, isUnlimited } = req.body;
 
     if (!keyName || !apiKey) {
       return res.status(400).json({
@@ -37,8 +37,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // Create API key in database
-    const result = await db.createApiKey(keyName, apiKey);
+    // Create API key in database with expiry
+    const result = await db.createApiKey(keyName, apiKey, expiresInDays, isUnlimited);
 
     if (result) {
       res.status(200).json({
