@@ -7,13 +7,35 @@ export default function ApiDemo({ onShowToast }) {
   const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   const codeExamples = {
-    javascript: `// Using Fetch API
+    javascript: `// Using Fetch API - GET Request
 fetch('${siteUrl}/api/download?key=YOUR_API_KEY&url=TIKTOK_URL')
   .then(response => response.json())
-  .then(data => console.log(data))
-  .catch(error => console.error('Error:', error));`,
+  .then(data => {
+    if (data.success) {
+      console.log('Video Title:', data.data.title);
+      console.log('Download URL:', data.data.download_links.video[0].url);
+    } else {
+      console.error('Error:', data.error);
+    }
+  })
+  .catch(error => console.error('Request failed:', error));
 
-    nodejs: `// Using Axios in Node.js
+// Using Fetch API - POST Request
+fetch('${siteUrl}/api/download', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    key: 'YOUR_API_KEY',
+    url: 'TIKTOK_URL'
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));`,
+
+    nodejs: `// Using Axios in Node.js - GET Request
 const axios = require('axios');
 
 const apiUrl = '${siteUrl}/api/download';
@@ -24,13 +46,25 @@ const params = {
 
 axios.get(apiUrl, { params })
   .then(response => {
-    console.log(response.data);
+    console.log('Success:', response.data);
   })
   .catch(error => {
     console.error('Error:', error.response?.data || error.message);
-  });`,
+  });
 
-    python: `# Using requests in Python
+// Using Axios - POST Request
+axios.post(apiUrl, {
+  key: 'YOUR_API_KEY',
+  url: 'TIKTOK_URL'
+})
+.then(response => {
+  console.log('Success:', response.data);
+})
+.catch(error => {
+  console.error('Error:', error.response?.data || error.message);
+});`,
+
+    python: `# Using requests in Python - GET Request
 import requests
 
 api_url = '${siteUrl}/api/download'
@@ -41,10 +75,26 @@ params = {
 
 response = requests.get(api_url, params=params)
 data = response.json()
-print(data)`,
+
+if data.get('success'):
+    print("Video Title:", data['data']['title'])
+    print("Download URL:", data['data']['download_links']['video'][0]['url'])
+else:
+    print("Error:", data.get('error'))
+
+# POST Request
+import requests
+
+data = {
+    'key': 'YOUR_API_KEY',
+    'url': 'TIKTOK_URL'
+}
+
+response = requests.post('${siteUrl}/api/download', json=data)
+print(response.json())`,
 
     php: `<?php
-// Using cURL in PHP
+// Using cURL in PHP - GET Request
 $api_url = '${siteUrl}/api/download';
 $params = [
     'key' => 'YOUR_API_KEY',
@@ -54,11 +104,35 @@ $params = [
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $api_url . '?' . http_build_query($params));
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 $response = curl_exec($ch);
 curl_close($ch);
 
 $data = json_decode($response, true);
-print_r($data);
+
+if ($data['success']) {
+    echo "Video Title: " . $data['data']['title'] . "\\n";
+    echo "Download URL: " . $data['data']['download_links']['video'][0]['url'] . "\\n";
+} else {
+    echo "Error: " . $data['error'] . "\\n";
+}
+
+// POST Request
+$data = [
+    'key' => 'YOUR_API_KEY',
+    'url' => 'TIKTOK_URL'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, '${siteUrl}/api/download');
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($ch);
+curl_close($ch);
+
+echo $response;
 ?>`
   };
 
@@ -66,8 +140,8 @@ print_r($data);
     success: true,
     type: "video",
     data: {
-      title: "Example TikTok Video",
-      description: "This is an example TikTok video description",
+      title: "Example TikTok Video - Amazing Dance Moves!",
+      description: "Check out these amazing dance moves from our latest TikTok video",
       duration: 30,
       thumbnail: "https://example.com/thumbnail.jpg",
       filename: "example_tiktok_video_30s",
@@ -158,6 +232,10 @@ print_r($data);
           <code className="text-sm break-all">
             {siteUrl}/api/download?key=YOUR_API_KEY&url=TIKTOK_URL
           </code>
+        </div>
+        <div className="mt-2 text-sm text-gray-600">
+          <p><strong>Supported Methods:</strong> GET, POST</p>
+          <p><strong>Content-Type:</strong> application/json, application/x-www-form-urlencoded</p>
         </div>
       </div>
 
