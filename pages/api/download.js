@@ -41,6 +41,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Check if API is enabled
+    const settings = await db.getWebsiteSettings();
+    if (!settings.apiEnabled) {
+      return res.status(503).json({
+        success: false,
+        error: 'API HAS BEEN OFF BY ADMIN! CONTACT ADMIN: kinghasanbd1@gmail.com'
+      });
+    }
+
     const { key, url } = req.query;
 
     // Validate required parameters
