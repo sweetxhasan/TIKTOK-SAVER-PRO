@@ -1,3 +1,4 @@
+// pages/admin.js
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import PasswordModal from '../components/PasswordModal';
@@ -7,14 +8,7 @@ export default function AdminPanel({ onShowToast }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('settings');
-  const [settings, setSettings] = useState({
-    websitePassword: '',
-    privatePagePassword: '',
-    adminPassword: '',
-    websiteEnabled: true,
-    apiEnabled: true,
-    rateLimit: 100
-  });
+  const [settings, setSettings] = useState(null);
   const [apiKeys, setApiKeys] = useState([]);
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,21 +38,21 @@ export default function AdminPanel({ onShowToast }) {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      console.log('Loading admin data...');
+      console.log('🔄 Loading admin data...');
       
       // Load settings
       const settingsData = await db.getWebsiteSettings();
-      console.log('Loaded settings:', settingsData);
+      console.log('📋 Settings loaded:', settingsData);
       setSettings(settingsData);
 
       // Load API keys
       const keysData = await db.getAllKeys();
-      console.log('Loaded keys:', keysData.length);
+      console.log('🔑 API keys loaded:', keysData.length);
       setApiKeys(keysData);
 
       // Load requests
       const requestsData = await db.getAllRequests(50);
-      console.log('Loaded requests:', requestsData.length);
+      console.log('📨 Requests loaded:', requestsData.length);
       setRequests(requestsData);
       
       onShowToast({
@@ -67,11 +61,11 @@ export default function AdminPanel({ onShowToast }) {
         message: 'Admin data loaded successfully'
       });
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('❌ Error loading data:', error);
       onShowToast({
         type: 'error',
         title: 'Load Failed',
-        message: 'Failed to load admin data: ' + error.message
+        message: 'Failed to load admin data'
       });
     } finally {
       setIsLoading(false);
@@ -79,9 +73,11 @@ export default function AdminPanel({ onShowToast }) {
   };
 
   const handleSaveSettings = async () => {
+    if (!settings) return;
+    
     setIsSaving(true);
     try {
-      console.log('Saving settings:', settings);
+      console.log('💾 Saving settings...', settings);
       await db.updateWebsiteSettings(settings);
       
       onShowToast({
@@ -93,7 +89,7 @@ export default function AdminPanel({ onShowToast }) {
       // Reload data to confirm changes
       await loadData();
     } catch (error) {
-      console.error('Save settings error:', error);
+      console.error('❌ Save settings error:', error);
       onShowToast({
         type: 'error',
         title: 'Save Failed',
@@ -117,7 +113,7 @@ export default function AdminPanel({ onShowToast }) {
       onShowToast({
         type: 'error',
         title: 'Action Failed',
-        message: 'Failed to deactivate key: ' + error.message
+        message: 'Failed to deactivate key'
       });
     }
   };
@@ -135,7 +131,7 @@ export default function AdminPanel({ onShowToast }) {
       onShowToast({
         type: 'error',
         title: 'Action Failed',
-        message: 'Failed to activate key: ' + error.message
+        message: 'Failed to activate key'
       });
     }
   };
@@ -154,7 +150,7 @@ export default function AdminPanel({ onShowToast }) {
         onShowToast({
           type: 'error',
           title: 'Delete Failed',
-          message: 'Failed to delete API key: ' + error.message
+          message: 'Failed to delete API key'
         });
       }
     }
@@ -182,7 +178,7 @@ export default function AdminPanel({ onShowToast }) {
       onShowToast({
         type: 'error',
         title: 'Update Failed',
-        message: 'Failed to update API key: ' + error.message
+        message: 'Failed to update API key'
       });
     }
   };
@@ -201,7 +197,7 @@ export default function AdminPanel({ onShowToast }) {
         onShowToast({
           type: 'error',
           title: 'Delete Failed',
-          message: 'Failed to delete request logs: ' + error.message
+          message: 'Failed to delete request logs'
         });
       }
     }
@@ -221,7 +217,38 @@ export default function AdminPanel({ onShowToast }) {
         onShowToast({
           type: 'error',
           title: 'Delete Failed',
-          message: 'Failed to delete API keys: ' + error.message
+          message: 'Failed to delete API keys'
+        });
+      }
+    }
+  };
+
+  const handleInitializeDatabase = async () => {
+    if (confirm('This will reset the database with default settings. Continue?')) {
+      try {
+        const response = await fetch('/api/init-database', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: 'init123' })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          onShowToast({
+            type: 'success',
+            title: 'Database Initialized',
+            message: 'Database has been reset with default settings'
+          });
+          loadData();
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (error) {
+        onShowToast({
+          type: 'error',
+          title: 'Init Failed',
+          message: 'Failed to initialize database'
         });
       }
     }
@@ -243,10 +270,7 @@ export default function AdminPanel({ onShowToast }) {
 
   if (!isAuthenticated) {
     return (
-      <Layout 
-        title="Admin Panel - Tik Save"
-        description="Admin panel for managing TikTok Downloader API"
-      >
+      <Layout title="Admin Panel - Tik Save">
         <PasswordModal
           isOpen={isPasswordModalOpen}
           onClose={() => {}}
@@ -257,12 +281,21 @@ export default function AdminPanel({ onShowToast }) {
     );
   }
 
+  if (!settings) {
+    return (
+      <Layout title="Admin Panel - Tik Save">
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading settings...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
-    <Layout 
-      title="Admin Panel - Tik Save"
-      description="Admin panel for managing TikTok Downloader API"
-    >
-      {/* Header */}
+    <Layout title="Admin Panel - Tik Save">
       <header className="border-b-1 border-gray-900 sticky top-0 bg-white z-40">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
@@ -292,9 +325,7 @@ export default function AdminPanel({ onShowToast }) {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        {/* Tabs */}
         <div className="border-b-1 border-gray-900 mb-8">
           <div className="flex space-x-8 overflow-x-auto">
             {['settings', 'api-keys', 'requests'].map((tab) => (
@@ -322,13 +353,11 @@ export default function AdminPanel({ onShowToast }) {
           </div>
         ) : (
           <>
-            {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="max-w-2xl">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Website Settings</h2>
                 
                 <div className="space-y-6">
-                  {/* Password Settings */}
                   <div className="border-1 border-gray-900 p-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Password Settings</h3>
                     
@@ -339,15 +368,13 @@ export default function AdminPanel({ onShowToast }) {
                         </label>
                         <input
                           type="text"
-                          value={settings.websitePassword || ''}
+                          value={settings.websitePassword}
                           onChange={(e) => setSettings(prev => ({
                             ...prev,
                             websitePassword: e.target.value
                           }))}
-                          placeholder="Enter website password"
                           className="w-full border-1 border-gray-900 p-3 focus:border-blue-500 focus:outline-none"
                         />
-                        <p className="text-sm text-gray-500 mt-1">Current: {settings.websitePassword || '123456'}</p>
                       </div>
                       
                       <div>
@@ -356,15 +383,13 @@ export default function AdminPanel({ onShowToast }) {
                         </label>
                         <input
                           type="text"
-                          value={settings.privatePagePassword || ''}
+                          value={settings.privatePagePassword}
                           onChange={(e) => setSettings(prev => ({
                             ...prev,
                             privatePagePassword: e.target.value
                           }))}
-                          placeholder="Enter private page password"
                           className="w-full border-1 border-gray-900 p-3 focus:border-blue-500 focus:outline-none"
                         />
-                        <p className="text-sm text-gray-500 mt-1">Current: {settings.privatePagePassword || '654321'}</p>
                       </div>
 
                       <div>
@@ -373,20 +398,17 @@ export default function AdminPanel({ onShowToast }) {
                         </label>
                         <input
                           type="text"
-                          value={settings.adminPassword || ''}
+                          value={settings.adminPassword}
                           onChange={(e) => setSettings(prev => ({
                             ...prev,
                             adminPassword: e.target.value
                           }))}
-                          placeholder="Enter admin password"
                           className="w-full border-1 border-gray-900 p-3 focus:border-blue-500 focus:outline-none"
                         />
-                        <p className="text-sm text-gray-500 mt-1">Current: {settings.adminPassword || '123456'}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* System Settings */}
                   <div className="border-1 border-gray-900 p-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">System Settings</h3>
                     
@@ -447,23 +469,36 @@ export default function AdminPanel({ onShowToast }) {
                           type="number"
                           min="1"
                           max="1000"
-                          value={settings.rateLimit || 100}
+                          value={settings.rateLimit}
                           onChange={(e) => setSettings(prev => ({
                             ...prev,
                             rateLimit: parseInt(e.target.value) || 100
                           }))}
                           className="w-full border-1 border-gray-900 p-3 focus:border-blue-500 focus:outline-none"
                         />
-                        <p className="text-sm text-gray-500 mt-1">Maximum requests per minute per API key. Current: {settings.rateLimit || 100}</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Danger Zone */}
                   <div className="border-1 border-red-300 bg-red-50 p-6">
                     <h3 className="text-lg font-bold text-red-900 mb-4">Danger Zone</h3>
                     
                     <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="block text-sm font-medium text-red-700 mb-1">
+                            Initialize Database
+                          </label>
+                          <p className="text-sm text-red-600">Reset database with default settings</p>
+                        </div>
+                        <button
+                          onClick={handleInitializeDatabase}
+                          className="bg-red-600 text-white px-4 py-2 text-sm font-bold hover:bg-red-700 border-1 border-red-600 transition-colors"
+                        >
+                          INITIALIZE
+                        </button>
+                      </div>
+
                       <div className="flex items-center justify-between">
                         <div>
                           <label className="block text-sm font-medium text-red-700 mb-1">
@@ -507,7 +542,6 @@ export default function AdminPanel({ onShowToast }) {
               </div>
             )}
 
-            {/* API Keys Tab */}
             {activeTab === 'api-keys' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
@@ -517,7 +551,6 @@ export default function AdminPanel({ onShowToast }) {
                   </div>
                 </div>
                 
-                {/* Edit Modal */}
                 {editingKey && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white border-1 border-gray-900 p-6 max-w-md w-full">
@@ -589,7 +622,7 @@ export default function AdminPanel({ onShowToast }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {apiKeys.map((keyData, index) => {
+                          {apiKeys.map((keyData) => {
                             const status = getStatusBadge(keyData);
                             return (
                               <tr key={keyData.key} className="border-b-1 border-gray-900 last:border-b-0 hover:bg-gray-50">
@@ -666,7 +699,6 @@ export default function AdminPanel({ onShowToast }) {
               </div>
             )}
 
-            {/* Requests Tab */}
             {activeTab === 'requests' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
@@ -706,7 +738,7 @@ export default function AdminPanel({ onShowToast }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {requests.map((request, index) => (
+                          {requests.map((request) => (
                             <tr key={request.id} className="border-b-1 border-gray-900 last:border-b-0 hover:bg-gray-50">
                               <td className="p-4 text-sm whitespace-nowrap">
                                 {formatDate(request.timestamp)}
