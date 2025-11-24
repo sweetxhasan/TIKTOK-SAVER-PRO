@@ -1,6 +1,25 @@
 import { TikTokDownloader } from '../../lib/tiktok-downloader';
 import { db } from '../../lib/firebase';
 
+// Function to get client IP and other details
+const getClientInfo = (req) => {
+  const ip = req.headers['x-forwarded-for'] || 
+             req.headers['x-real-ip'] || 
+             req.connection.remoteAddress || 
+             req.socket.remoteAddress;
+  
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+  const referer = req.headers['referer'] || 'Direct';
+  
+  return {
+    ip: ip?.split(',')[0]?.trim() || 'Unknown',
+    userAgent,
+    referer,
+    method: req.method,
+    url: req.url
+  };
+};
+
 export default async function handler(req, res) {
   // Set CORS headers for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -56,6 +75,21 @@ export default async function handler(req, res) {
       });
     }
 
+    // Get client information
+    const clientInfo = getClientInfo(req);
+
+    // Log API request
+    try {
+      await db.logApiRequest(key, {
+        ...clientInfo,
+        tiktokUrl: url,
+        success: true
+      });
+    } catch (logError) {
+      console.error('Request logging error:', logError);
+      // Continue even if logging fails
+    }
+
     // Update API usage
     try {
       await db.updateApiUsage(key);
@@ -73,6 +107,21 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('API Error:', error.message);
+    
+    // Log failed request if we have the key
+    if (req.query.key) {
+      try {
+        const clientInfo = getClientInfo(req);
+        await db.logApiRequest(req.query.key, {
+          ...clientInfo,
+          tiktokUrl: req.query.url,
+          success: false,
+          error: error.message
+        });
+      } catch (logError) {
+        console.error('Failed request logging error:', logError);
+      }
+    }
     
     // Return appropriate error response
     if (error.message.includes('Invalid TikTok URL')) {
