@@ -1,7 +1,8 @@
 import { useState } from 'react';
 
-export default function GenerateKeyModal({ isOpen, onClose, onShowToast }) {
+export default function GenerateKeyModal({ isOpen, onClose, onShowToast, isUnlimited = false }) {
   const [keyName, setKeyName] = useState('');
+  const [expireDays, setExpireDays] = useState('10');
   const [generatedKey, setGeneratedKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,6 +27,7 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast }) {
 
     try {
       const apiKey = generateRandomKey();
+      const expiresInDays = isUnlimited ? null : parseInt(expireDays);
       
       const response = await fetch('/api/generate-key', {
         method: 'POST',
@@ -34,7 +36,9 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast }) {
         },
         body: JSON.stringify({
           keyName: keyName.trim(),
-          apiKey: apiKey
+          apiKey: apiKey,
+          expiresInDays: expiresInDays,
+          isUnlimited: isUnlimited
         }),
       });
 
@@ -45,7 +49,7 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast }) {
         onShowToast({
           type: 'success',
           title: 'API Key Generated',
-          message: 'Your API key has been created successfully!'
+          message: `Your API key has been created successfully! ${!isUnlimited ? `Expires in ${expireDays} days.` : 'Unlimited access.'}`
         });
       } else {
         setError(data.error || 'Failed to generate key');
@@ -73,6 +77,7 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast }) {
 
   const handleClose = () => {
     setKeyName('');
+    setExpireDays('10');
     setGeneratedKey('');
     setError('');
     onClose();
@@ -85,7 +90,7 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast }) {
       <div className="bg-white border-1 border-gray-900 p-6 max-w-md w-full animate-slide-up">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-900">
-            {generatedKey ? 'API Key Generated' : 'Generate API Key'}
+            {generatedKey ? 'API Key Generated' : `Generate API Key ${isUnlimited ? '(Unlimited)' : ''}`}
           </h3>
           <button
             onClick={handleClose}
@@ -112,6 +117,31 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast }) {
               />
             </div>
 
+            {!isUnlimited && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Expire After
+                </label>
+                <select
+                  value={expireDays}
+                  onChange={(e) => setExpireDays(e.target.value)}
+                  className="w-full border-1 border-gray-900 p-3 focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="10">10 Days</option>
+                  <option value="20">20 Days</option>
+                  <option value="30">30 Days</option>
+                </select>
+              </div>
+            )}
+
+            {isUnlimited && (
+              <div className="bg-blue-50 border-1 border-blue-200 p-3">
+                <p className="text-blue-800 text-sm">
+                  <strong>Unlimited Access:</strong> This key will never expire and has full access to all features.
+                </p>
+              </div>
+            )}
+
             {error && (
               <div className="text-red-600 text-sm border-1 border-red-600 p-2">
                 {error}
@@ -131,6 +161,16 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast }) {
             <div className="bg-gray-100 border-1 border-gray-900 p-4">
               <p className="text-sm text-gray-600 mb-2">Your API Key:</p>
               <p className="font-mono text-sm break-all">{generatedKey}</p>
+              {!isUnlimited && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Expires: {new Date(Date.now() + parseInt(expireDays) * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                </p>
+              )}
+              {isUnlimited && (
+                <p className="text-xs text-green-600 mt-2">
+                  ✓ Unlimited Access - No Expiration
+                </p>
+              )}
             </div>
 
             <div className="flex space-x-3">
