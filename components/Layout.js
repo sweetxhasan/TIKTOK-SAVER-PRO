@@ -1,6 +1,8 @@
 import Head from 'next/head';
 
 export default function Layout({ children, title = "TikTok Downloader API" }) {
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
   return (
     <>
       <Head>
