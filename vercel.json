@@ -2,10 +2,5 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
-  "functions": {
-    "pages/api/**/*.js": {
-      "maxDuration": 30
-    }
-  }
+  "installCommand": "npm install"
 }
