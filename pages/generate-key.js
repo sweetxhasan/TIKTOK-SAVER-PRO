@@ -88,7 +88,7 @@ export default function PrivateGenerateKey({ onShowToast }) {
           <div className="border-1 border-gray-900 p-6 md:p-8 mb-8 text-center">
             <div className="mb-6">
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
-                Generate Unlimited API Key
+                Generate API Key
               </h2>
               <p className="text-gray-600">
                 Create a new API key with unlimited access to all features
@@ -137,7 +137,7 @@ export default function PrivateGenerateKey({ onShowToast }) {
                 <p className="text-yellow-700 text-sm">
                   These API keys provide unlimited access to the TikTok Downloader API. 
                   Keep them secure and do not share publicly. Monitor usage and rotate keys 
-                  regularly for security purposes. Contact admin if any key is compromised.
+                  regularly for security purposes.
                 </p>
               </div>
             </div>
