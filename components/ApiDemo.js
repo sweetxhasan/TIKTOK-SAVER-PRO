@@ -7,13 +7,28 @@ export default function ApiDemo({ onShowToast }) {
   const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   const codeExamples = {
-    javascript: `// Using Fetch API
+    javascript: `// Using Fetch API - GET Request
 fetch('${siteUrl}/api/download?key=YOUR_API_KEY&url=TIKTOK_URL')
   .then(response => response.json())
   .then(data => console.log(data))
-  .catch(error => console.error('Error:', error));`,
+  .catch(error => console.error('Error:', error));
 
-    nodejs: `// Using Axios in Node.js
+// Using Fetch API - POST Request
+fetch('${siteUrl}/api/download', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    key: 'YOUR_API_KEY',
+    url: 'TIKTOK_URL'
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));`,
+
+    nodejs: `// Using Axios in Node.js - GET Request
 const axios = require('axios');
 
 const apiUrl = '${siteUrl}/api/download';
@@ -28,9 +43,21 @@ axios.get(apiUrl, { params })
   })
   .catch(error => {
     console.error('Error:', error.response?.data || error.message);
-  });`,
+  });
 
-    python: `# Using requests in Python
+// Using Axios in Node.js - POST Request
+axios.post(apiUrl, {
+  key: 'YOUR_API_KEY',
+  url: 'TIKTOK_URL'
+})
+.then(response => {
+  console.log(response.data);
+})
+.catch(error => {
+  console.error('Error:', error.response?.data || error.message);
+});`,
+
+    python: `# Using requests in Python - GET Request
 import requests
 
 api_url = '${siteUrl}/api/download'
@@ -41,10 +68,20 @@ params = {
 
 response = requests.get(api_url, params=params)
 data = response.json()
-print(data)`,
+print(data)
+
+# Using requests in Python - POST Request
+data = {
+    'key': 'YOUR_API_KEY',
+    'url': 'TIKTOK_URL'
+}
+
+response = requests.post(api_url, json=data)
+result = response.json()
+print(result)`,
 
     php: `<?php
-// Using cURL in PHP
+// Using cURL in PHP - GET Request
 $api_url = '${siteUrl}/api/download';
 $params = [
     'key' => 'YOUR_API_KEY',
@@ -53,6 +90,25 @@ $params = [
 
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $api_url . '?' . http_build_query($params));
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+$response = curl_exec($ch);
+curl_close($ch);
+
+$data = json_decode($response, true);
+print_r($data);
+
+// Using cURL in PHP - POST Request
+$post_data = [
+    'key' => 'YOUR_API_KEY',
+    'url' => 'TIKTOK_URL'
+];
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $api_url);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 $response = curl_exec($ch);
 curl_close($ch);
@@ -159,6 +215,9 @@ print_r($data);
             {siteUrl}/api/download?key=YOUR_API_KEY&url=TIKTOK_URL
           </code>
         </div>
+        <p className="text-sm text-gray-600 mt-2">
+          Supports both GET and POST requests with JSON or form data
+        </p>
       </div>
 
       {/* Code Examples Section */}
@@ -220,6 +279,34 @@ print_r($data);
           </div>
         </div>
       </div>
+
+      {/* Testing Instructions */}
+      <div className="border-1 border-gray-900 p-6">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">Testing Instructions</h3>
+        <div className="space-y-3">
+          <div className="flex items-start space-x-3">
+            <div className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">1</div>
+            <div>
+              <h4 className="font-bold text-gray-900">Get Your API Key</h4>
+              <p className="text-gray-600 text-sm">Generate an API key from the homepage or private page</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <div className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">2</div>
+            <div>
+              <h4 className="font-bold text-gray-900">Use Any HTTP Client</h4>
+              <p className="text-gray-600 text-sm">Works with fetch, axios, requests, cURL, Postman, etc.</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <div className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">3</div>
+            <div>
+              <h4 className="font-bold text-gray-900">Test with Real TikTok URL</h4>
+              <p className="text-gray-600 text-sm">Use a real TikTok video URL like: https://www.tiktok.com/@username/video/123456789</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
-        }
+}
