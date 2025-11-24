@@ -23,44 +23,6 @@ const getClientInfo = (req) => {
   };
 };
 
-// Function to generate proxy download links
-function generateProxyLinks(originalData, siteUrl) {
-  const proxyData = JSON.parse(JSON.stringify(originalData)); // Deep clone
-  
-  // Process video download links
-  if (proxyData.data.download_links.video) {
-    proxyData.data.download_links.video = proxyData.data.download_links.video.map(video => ({
-      ...video,
-      proxy_url: `${siteUrl}/api/proxy/download?url=${encodeURIComponent(video.url)}&filename=${encodeURIComponent(proxyData.data.filename)}`
-    }));
-  }
-
-  // Process audio download links
-  if (proxyData.data.download_links.audio) {
-    proxyData.data.download_links.audio = proxyData.data.download_links.audio.map(audio => ({
-      ...audio,
-      proxy_url: `${siteUrl}/api/proxy/download?url=${encodeURIComponent(audio.url)}&filename=${encodeURIComponent(proxyData.data.filename + '_audio')}`
-    }));
-  }
-
-  // Process image download links
-  if (proxyData.data.download_links.images) {
-    proxyData.data.download_links.images = proxyData.data.download_links.images.map((image, index) => ({
-      ...image,
-      proxy_url: `${siteUrl}/api/proxy/download?url=${encodeURIComponent(image.url)}&filename=${encodeURIComponent(proxyData.data.filename + '_image_' + (index + 1))}`
-    }));
-  }
-
-  // Add direct download section
-  proxyData.data.direct_downloads = {
-    videos: proxyData.data.download_links.video?.map(v => v.proxy_url) || [],
-    audio: proxyData.data.download_links.audio?.map(a => a.proxy_url) || [],
-    images: proxyData.data.download_links.images?.map(i => i.proxy_url) || []
-  };
-
-  return proxyData;
-}
-
 export default async function handler(req, res) {
   // Set CORS headers for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -174,16 +136,8 @@ export default async function handler(req, res) {
       author: result.data?.author?.name 
     });
 
-    // Generate proxy download links
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   (req.headers['x-forwarded-proto'] && req.headers['host'] ? 
-                    `${req.headers['x-forwarded-proto']}://${req.headers['host']}` : 
-                    'http://localhost:3000');
-
-    const resultWithProxy = generateProxyLinks(result, siteUrl);
-
-    // Return successful response with proxy links
-    return res.status(200).json(resultWithProxy);
+    // Return successful response
+    return res.status(200).json(result);
 
   } catch (error) {
     console.error('API Error:', error.message);
