@@ -1,4 +1,3 @@
-// pages/api/generate-key.js
 import { db } from '../../lib/firebase';
 
 export default async function handler(req, res) {
@@ -23,6 +22,8 @@ export default async function handler(req, res) {
   try {
     const { keyName, apiKey, expiresInDays, isUnlimited } = req.body;
 
+    console.log('Generate key request:', { keyName, apiKey, expiresInDays, isUnlimited });
+
     if (!keyName || !apiKey) {
       return res.status(400).json({
         success: false,
@@ -41,7 +42,9 @@ export default async function handler(req, res) {
     // Create API key in database with expiry
     const result = await db.createApiKey(keyName, apiKey, expiresInDays, isUnlimited);
 
-    if (result.success) {
+    console.log('Key creation result:', result);
+
+    if (result) {
       res.status(200).json({
         success: true,
         message: 'API key generated successfully'
@@ -49,7 +52,7 @@ export default async function handler(req, res) {
     } else {
       res.status(500).json({
         success: false,
-        error: 'Failed to generate API key'
+        error: 'Failed to generate API key - database save failed'
       });
     }
   } catch (error) {
