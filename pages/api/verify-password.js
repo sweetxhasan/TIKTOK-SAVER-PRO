@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         correctPassword = settings.privatePagePassword || process.env.PRIVATE_PAGE_PASSWORD || '654321';
         break;
       case "admin":
-        correctPassword = process.env.ADMIN_PAGE_PASSWORD || '123456';
+        correctPassword = settings.adminPassword || process.env.ADMIN_PAGE_PASSWORD || '123456';
         break;
       default:
         correctPassword = process.env.WEBSITE_PASSWORD || '123456';
