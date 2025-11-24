@@ -18,6 +18,7 @@ export default function AdminPanel({ onShowToast }) {
   const [apiKeys, setApiKeys] = useState([]);
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [editingKey, setEditingKey] = useState(null);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -43,23 +44,34 @@ export default function AdminPanel({ onShowToast }) {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      console.log('Loading admin data...');
+      
       // Load settings
       const settingsData = await db.getWebsiteSettings();
+      console.log('Loaded settings:', settingsData);
       setSettings(settingsData);
 
       // Load API keys
       const keysData = await db.getAllKeys();
+      console.log('Loaded keys:', keysData.length);
       setApiKeys(keysData);
 
       // Load requests
       const requestsData = await db.getAllRequests(50);
+      console.log('Loaded requests:', requestsData.length);
       setRequests(requestsData);
+      
+      onShowToast({
+        type: 'success',
+        title: 'Data Loaded',
+        message: 'Admin data loaded successfully'
+      });
     } catch (error) {
       console.error('Error loading data:', error);
       onShowToast({
         type: 'error',
         title: 'Load Failed',
-        message: 'Failed to load admin data'
+        message: 'Failed to load admin data: ' + error.message
       });
     } finally {
       setIsLoading(false);
@@ -67,20 +79,28 @@ export default function AdminPanel({ onShowToast }) {
   };
 
   const handleSaveSettings = async () => {
+    setIsSaving(true);
     try {
+      console.log('Saving settings:', settings);
       await db.updateWebsiteSettings(settings);
+      
       onShowToast({
         type: 'success',
         title: 'Settings Saved',
         message: 'Website settings updated successfully'
       });
-      loadData(); // Reload to get updated data
+      
+      // Reload data to confirm changes
+      await loadData();
     } catch (error) {
+      console.error('Save settings error:', error);
       onShowToast({
         type: 'error',
         title: 'Save Failed',
-        message: 'Failed to save settings'
+        message: 'Failed to save settings: ' + error.message
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -97,7 +117,7 @@ export default function AdminPanel({ onShowToast }) {
       onShowToast({
         type: 'error',
         title: 'Action Failed',
-        message: 'Failed to deactivate key'
+        message: 'Failed to deactivate key: ' + error.message
       });
     }
   };
@@ -115,7 +135,7 @@ export default function AdminPanel({ onShowToast }) {
       onShowToast({
         type: 'error',
         title: 'Action Failed',
-        message: 'Failed to activate key'
+        message: 'Failed to activate key: ' + error.message
       });
     }
   };
@@ -134,7 +154,7 @@ export default function AdminPanel({ onShowToast }) {
         onShowToast({
           type: 'error',
           title: 'Delete Failed',
-          message: 'Failed to delete API key'
+          message: 'Failed to delete API key: ' + error.message
         });
       }
     }
@@ -162,7 +182,7 @@ export default function AdminPanel({ onShowToast }) {
       onShowToast({
         type: 'error',
         title: 'Update Failed',
-        message: 'Failed to update API key'
+        message: 'Failed to update API key: ' + error.message
       });
     }
   };
@@ -181,7 +201,7 @@ export default function AdminPanel({ onShowToast }) {
         onShowToast({
           type: 'error',
           title: 'Delete Failed',
-          message: 'Failed to delete request logs'
+          message: 'Failed to delete request logs: ' + error.message
         });
       }
     }
@@ -201,7 +221,7 @@ export default function AdminPanel({ onShowToast }) {
         onShowToast({
           type: 'error',
           title: 'Delete Failed',
-          message: 'Failed to delete API keys'
+          message: 'Failed to delete API keys: ' + error.message
         });
       }
     }
@@ -253,12 +273,21 @@ export default function AdminPanel({ onShowToast }) {
               </svg>
               <h1 className="text-xl font-bold text-gray-900">ADMIN PANEL</h1>
             </div>
-            <a
-              href="/"
-              className="bg-gray-900 text-white px-4 py-2 text-sm font-bold hover:bg-gray-800 border-1 border-gray-900 transition-colors"
-            >
-              BACK HOME
-            </a>
+            <div className="flex space-x-3">
+              <button
+                onClick={loadData}
+                disabled={isLoading}
+                className="bg-blue-600 text-white px-4 py-2 text-sm font-bold hover:bg-blue-700 disabled:bg-blue-400 border-1 border-blue-600 transition-colors"
+              >
+                {isLoading ? 'LOADING...' : 'REFRESH'}
+              </button>
+              <a
+                href="/"
+                className="bg-gray-900 text-white px-4 py-2 text-sm font-bold hover:bg-gray-800 border-1 border-gray-900 transition-colors"
+              >
+                BACK HOME
+              </a>
+            </div>
           </div>
         </div>
       </header>
@@ -318,6 +347,7 @@ export default function AdminPanel({ onShowToast }) {
                           placeholder="Enter website password"
                           className="w-full border-1 border-gray-900 p-3 focus:border-blue-500 focus:outline-none"
                         />
+                        <p className="text-sm text-gray-500 mt-1">Current: {settings.websitePassword || '123456'}</p>
                       </div>
                       
                       <div>
@@ -334,6 +364,7 @@ export default function AdminPanel({ onShowToast }) {
                           placeholder="Enter private page password"
                           className="w-full border-1 border-gray-900 p-3 focus:border-blue-500 focus:outline-none"
                         />
+                        <p className="text-sm text-gray-500 mt-1">Current: {settings.privatePagePassword || '654321'}</p>
                       </div>
 
                       <div>
@@ -350,6 +381,7 @@ export default function AdminPanel({ onShowToast }) {
                           placeholder="Enter admin password"
                           className="w-full border-1 border-gray-900 p-3 focus:border-blue-500 focus:outline-none"
                         />
+                        <p className="text-sm text-gray-500 mt-1">Current: {settings.adminPassword || '123456'}</p>
                       </div>
                     </div>
                   </div>
@@ -422,7 +454,7 @@ export default function AdminPanel({ onShowToast }) {
                           }))}
                           className="w-full border-1 border-gray-900 p-3 focus:border-blue-500 focus:outline-none"
                         />
-                        <p className="text-sm text-gray-500 mt-1">Maximum requests per minute per API key</p>
+                        <p className="text-sm text-gray-500 mt-1">Maximum requests per minute per API key. Current: {settings.rateLimit || 100}</p>
                       </div>
                     </div>
                   </div>
@@ -466,9 +498,10 @@ export default function AdminPanel({ onShowToast }) {
 
                   <button
                     onClick={handleSaveSettings}
-                    className="w-full bg-gray-900 text-white py-3 font-bold hover:bg-gray-800 border-1 border-gray-900 transition-colors"
+                    disabled={isSaving}
+                    className="w-full bg-gray-900 text-white py-3 font-bold hover:bg-gray-800 disabled:bg-gray-400 border-1 border-gray-900 transition-colors"
                   >
-                    SAVE ALL SETTINGS
+                    {isSaving ? 'SAVING...' : 'SAVE ALL SETTINGS'}
                   </button>
                 </div>
               </div>
@@ -537,92 +570,98 @@ export default function AdminPanel({ onShowToast }) {
                     API Keys List
                   </div>
                   
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b-1 border-gray-900">
-                          <th className="text-left p-4 font-bold">Key Name</th>
-                          <th className="text-left p-4 font-bold">Type</th>
-                          <th className="text-left p-4 font-bold">Created</th>
-                          <th className="text-left p-4 font-bold">Expires</th>
-                          <th className="text-left p-4 font-bold">Requests</th>
-                          <th className="text-left p-4 font-bold">Status</th>
-                          <th className="text-left p-4 font-bold">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {apiKeys.map((keyData, index) => {
-                          const status = getStatusBadge(keyData);
-                          return (
-                            <tr key={keyData.key} className="border-b-1 border-gray-900 last:border-b-0 hover:bg-gray-50">
-                              <td className="p-4">
-                                <div>
-                                  <div className="font-medium">{keyData.name}</div>
-                                  <div className="text-xs text-gray-500 font-mono truncate max-w-xs">
-                                    {keyData.key}
+                  {apiKeys.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">
+                      No API keys found. Generate some keys first.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b-1 border-gray-900">
+                            <th className="text-left p-4 font-bold">Key Name</th>
+                            <th className="text-left p-4 font-bold">Type</th>
+                            <th className="text-left p-4 font-bold">Created</th>
+                            <th className="text-left p-4 font-bold">Expires</th>
+                            <th className="text-left p-4 font-bold">Requests</th>
+                            <th className="text-left p-4 font-bold">Status</th>
+                            <th className="text-left p-4 font-bold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {apiKeys.map((keyData, index) => {
+                            const status = getStatusBadge(keyData);
+                            return (
+                              <tr key={keyData.key} className="border-b-1 border-gray-900 last:border-b-0 hover:bg-gray-50">
+                                <td className="p-4">
+                                  <div>
+                                    <div className="font-medium">{keyData.name}</div>
+                                    <div className="text-xs text-gray-500 font-mono truncate max-w-xs">
+                                      {keyData.key}
+                                    </div>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <span className={`px-2 py-1 text-xs font-medium ${
-                                  keyData.isUnlimited 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-blue-100 text-blue-800'
-                                }`}>
-                                  {keyData.isUnlimited ? 'Unlimited' : 'Limited'}
-                                </span>
-                              </td>
-                              <td className="p-4 text-sm">
-                                {formatDate(keyData.createdAt)}
-                              </td>
-                              <td className="p-4 text-sm">
-                                {keyData.expiresAt ? formatDate(keyData.expiresAt) : 'Never'}
-                              </td>
-                              <td className="p-4 text-sm font-mono">
-                                {keyData.totalRequests || 0}
-                              </td>
-                              <td className="p-4">
-                                <span className={`px-2 py-1 text-xs font-medium ${status.color}`}>
-                                  {status.text}
-                                </span>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex space-x-2">
-                                  <button
-                                    onClick={() => handleEditKey(keyData)}
-                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                  >
-                                    Edit
-                                  </button>
-                                  {keyData.isActive ? (
+                                </td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-1 text-xs font-medium ${
+                                    keyData.isUnlimited 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {keyData.isUnlimited ? 'Unlimited' : 'Limited'}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-sm">
+                                  {formatDate(keyData.createdAt)}
+                                </td>
+                                <td className="p-4 text-sm">
+                                  {keyData.expiresAt ? formatDate(keyData.expiresAt) : 'Never'}
+                                </td>
+                                <td className="p-4 text-sm font-mono">
+                                  {keyData.totalRequests || 0}
+                                </td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-1 text-xs font-medium ${status.color}`}>
+                                    {status.text}
+                                  </span>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex space-x-2">
                                     <button
-                                      onClick={() => handleDeactivateKey(keyData.key)}
-                                      className="text-orange-600 hover:text-orange-800 text-sm font-medium"
+                                      onClick={() => handleEditKey(keyData)}
+                                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                     >
-                                      Deactivate
+                                      Edit
                                     </button>
-                                  ) : (
+                                    {keyData.isActive ? (
+                                      <button
+                                        onClick={() => handleDeactivateKey(keyData.key)}
+                                        className="text-orange-600 hover:text-orange-800 text-sm font-medium"
+                                      >
+                                        Deactivate
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleActivateKey(keyData.key)}
+                                        className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                      >
+                                        Activate
+                                      </button>
+                                    )}
                                     <button
-                                      onClick={() => handleActivateKey(keyData.key)}
-                                      className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                      onClick={() => handleDeleteKey(keyData.key)}
+                                      className="text-red-600 hover:text-red-800 text-sm font-medium"
                                     >
-                                      Activate
+                                      Delete
                                     </button>
-                                  )}
-                                  <button
-                                    onClick={() => handleDeleteKey(keyData.key)}
-                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -650,46 +689,52 @@ export default function AdminPanel({ onShowToast }) {
                     Recent API Requests
                   </div>
                   
-                  <div className="overflow-x-auto max-h-96">
-                    <table className="w-full">
-                      <thead className="sticky top-0 bg-white">
-                        <tr className="border-b-1 border-gray-900">
-                          <th className="text-left p-4 font-bold">Time</th>
-                          <th className="text-left p-4 font-bold">API Key</th>
-                          <th className="text-left p-4 font-bold">URL</th>
-                          <th className="text-left p-4 font-bold">IP</th>
-                          <th className="text-left p-4 font-bold">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {requests.map((request, index) => (
-                          <tr key={request.id} className="border-b-1 border-gray-900 last:border-b-0 hover:bg-gray-50">
-                            <td className="p-4 text-sm whitespace-nowrap">
-                              {formatDate(request.timestamp)}
-                            </td>
-                            <td className="p-4 text-sm font-mono max-w-xs truncate">
-                              {request.apiKey ? request.apiKey.substring(0, 20) + '...' : 'N/A'}
-                            </td>
-                            <td className="p-4 text-sm max-w-xs truncate">
-                              {request.tiktokUrl || 'N/A'}
-                            </td>
-                            <td className="p-4 text-sm font-mono">
-                              {request.ip || 'N/A'}
-                            </td>
-                            <td className="p-4">
-                              <span className={`px-2 py-1 text-xs font-medium ${
-                                request.success 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-red-100 text-red-800'
-                              }`}>
-                                {request.success ? 'Success' : 'Failed'}
-                              </span>
-                            </td>
+                  {requests.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">
+                      No API requests found yet.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto max-h-96">
+                      <table className="w-full">
+                        <thead className="sticky top-0 bg-white">
+                          <tr className="border-b-1 border-gray-900">
+                            <th className="text-left p-4 font-bold">Time</th>
+                            <th className="text-left p-4 font-bold">API Key</th>
+                            <th className="text-left p-4 font-bold">URL</th>
+                            <th className="text-left p-4 font-bold">IP</th>
+                            <th className="text-left p-4 font-bold">Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {requests.map((request, index) => (
+                            <tr key={request.id} className="border-b-1 border-gray-900 last:border-b-0 hover:bg-gray-50">
+                              <td className="p-4 text-sm whitespace-nowrap">
+                                {formatDate(request.timestamp)}
+                              </td>
+                              <td className="p-4 text-sm font-mono max-w-xs truncate">
+                                {request.apiKey ? request.apiKey.substring(0, 20) + '...' : 'N/A'}
+                              </td>
+                              <td className="p-4 text-sm max-w-xs truncate">
+                                {request.tiktokUrl || 'N/A'}
+                              </td>
+                              <td className="p-4 text-sm font-mono">
+                                {request.ip || 'N/A'}
+                              </td>
+                              <td className="p-4">
+                                <span className={`px-2 py-1 text-xs font-medium ${
+                                  request.success 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {request.success ? 'Success' : 'Failed'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
