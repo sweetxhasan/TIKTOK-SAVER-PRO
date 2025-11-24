@@ -27,13 +27,12 @@ export default async function handler(req, res) {
   // Set CORS headers for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Origin, Accept');
   res.setHeader('Access-Control-Max-Age', '86400');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   // Handle OPTIONS request (preflight)
   if (req.method === 'OPTIONS') {
-    return res.status(200).json({ success: true, message: 'CORS preflight successful' });
+    return res.status(200).end();
   }
 
   // Allow both GET and POST requests
@@ -57,25 +56,20 @@ export default async function handler(req, res) {
         key = body.key;
         url = body.url;
       } else if (req.headers['content-type']?.includes('application/x-www-form-urlencoded')) {
-        const body = await parseFormData(req);
-        key = body.key;
-        url = body.url;
+        const body = await new Promise((resolve) => {
+          let data = '';
+          req.on('data', chunk => data += chunk);
+          req.on('end', () => resolve(new URLSearchParams(data)));
+        });
+        key = body.get('key');
+        url = body.get('url');
       } else {
-        // Try to parse as JSON anyway
-        try {
-          const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-          key = body.key;
-          url = body.url;
-        } catch {
-          return res.status(400).json({
-            success: false,
-            error: 'Invalid content type. Use application/json or application/x-www-form-urlencoded'
-          });
-        }
+        key = req.body?.key;
+        url = req.body?.url;
       }
     }
 
-    console.log('API Request:', { method: req.method, key: key ? `${key.substring(0, 10)}...` : 'missing', url: url ? `${url.substring(0, 50)}...` : 'missing' });
+    console.log('API Request:', { method: req.method, key: key ? `${key.substring(0, 10)}...` : 'none', url: url ? `${url.substring(0, 50)}...` : 'none' });
 
     // Validate required parameters
     if (!key) {
@@ -136,6 +130,12 @@ export default async function handler(req, res) {
     const downloader = new TikTokDownloader();
     const result = await downloader.downloadTikTok(url);
 
+    console.log('API Response Success:', { 
+      type: result.type, 
+      title: result.data?.title?.substring(0, 50) + '...',
+      author: result.data?.author?.name 
+    });
+
     // Return successful response
     return res.status(200).json(result);
 
@@ -145,11 +145,13 @@ export default async function handler(req, res) {
     // Log failed request if we have the key
     if (req.query?.key || req.body?.key) {
       try {
-        const key = req.query?.key || req.body?.key;
         const clientInfo = getClientInfo(req);
-        await db.logApiRequest(key, {
+        const requestKey = req.query?.key || req.body?.key;
+        const requestUrl = req.query?.url || req.body?.url;
+        
+        await db.logApiRequest(requestKey, {
           ...clientInfo,
-          tiktokUrl: req.query?.url || req.body?.url,
+          tiktokUrl: requestUrl,
           success: false,
           error: error.message
         });
@@ -186,27 +188,4 @@ export default async function handler(req, res) {
       });
     }
   }
-}
-
-// Helper function to parse form data
-function parseFormData(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        const params = new URLSearchParams(body);
-        const data = {};
-        for (const [key, value] of params) {
-          data[key] = value;
-        }
-        resolve(data);
-      } catch (error) {
-        reject(error);
-      }
-    });
-    req.on('error', reject);
-  });
 }
