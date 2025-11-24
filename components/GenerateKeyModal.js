@@ -29,6 +29,13 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast, isUnlim
       const apiKey = generateRandomKey();
       const expiresInDays = isUnlimited ? null : parseInt(expireDays);
       
+      console.log('Sending request to generate key:', {
+        keyName: keyName.trim(),
+        apiKey,
+        expiresInDays,
+        isUnlimited
+      });
+
       const response = await fetch('/api/generate-key', {
         method: 'POST',
         headers: {
@@ -43,6 +50,7 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast, isUnlim
       });
 
       const data = await response.json();
+      console.log('Generate key response:', data);
 
       if (data.success) {
         setGeneratedKey(apiKey);
@@ -53,9 +61,15 @@ export default function GenerateKeyModal({ isOpen, onClose, onShowToast, isUnlim
         });
       } else {
         setError(data.error || 'Failed to generate key');
+        onShowToast({
+          type: 'error',
+          title: 'Generation Failed',
+          message: data.error || 'Failed to generate API key'
+        });
       }
     } catch (error) {
-      setError('Failed to generate API key');
+      console.error('Generate key catch error:', error);
+      setError('Failed to generate API key: ' + error.message);
       onShowToast({
         type: 'error',
         title: 'Generation Failed',
