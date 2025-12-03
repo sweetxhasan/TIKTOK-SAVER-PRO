@@ -302,7 +302,7 @@ print_r($data);
             <div className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mt-0.5 flex-shrink-0">3</div>
             <div>
               <h4 className="font-bold text-gray-900">Test with Real TikTok URL</h4>
-              <p className="text-gray-600 text-sm">Use a real TikTok video URL like: https://www.tiktok.com/@username/video/123456789</p>
+              <p className="text-gray-600 text-sm">Use a real TikTok video URL.</p>
             </div>
           </div>
         </div>
